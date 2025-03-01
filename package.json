@@ -1,0 +1,12 @@
+{
+  "name": "nest-react-app",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "frontend": "npm run dev --workspace=frontend",
+    "backend": "npm run start:dev --workspace=backend"
+  }
+} 
