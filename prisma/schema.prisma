@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ユーザーモデル
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  userPatients UserPatient[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// 患者モデル
+// １ユーザーに複数の患者をもつ
+model Patient {
+  id                String              @id @default(uuid())
+  name              String
+  email             String              @unique
+  password          String
+  userPatients      UserPatient[]
+  bloodPressureData BloodPressureData[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model UserPatient {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BloodPressureData {
+  id         String   @id @default(uuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  systolic   Int // 収縮期血圧（上の血圧）
+  diastolic  Int // 拡張期血圧（下の血圧）
+  pulse      Int? // 脈拍（オプショナル）
+  measuredAt DateTime // 測定日時
+  memo       String? // メモ（オプショナル）
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
