@@ -1,0 +1,25 @@
+{
+  "name": "nest-react-app",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "frontend": "npm run dev --workspace=frontend",
+    "backend": "npm run start:dev --workspace=backend"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.4.1",
+    "prisma": "^6.4.1"
+  },
+  "prisma": {
+    "seed": "node --loader ts-node/esm ./prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
