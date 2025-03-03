@@ -1,22 +1,24 @@
-import { Injectable } from "@nestjs/common";
-import { User } from "@prisma/client";
-import { CreateUserInputDto, UserOutputDto } from "src/dto/user/createUser";
-import { PrismaService } from "src/prisma/prisma.service";
+import { Injectable } from '@nestjs/common';
+import { User } from '@prisma/client';
+import { createUserInputDto, userOutputDto } from 'src/dto/user/createUser';
+import { foundUser } from 'src/dto/user/loginUser';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 export interface UserRepositoryInterface {
-  findById(id: string): Promise<UserOutputDto | null>
-  findByEmail(email: string): Promise<UserOutputDto | null>
-  createUser(user: CreateUserInputDto): Promise<User>
+  findById(id: string): Promise<userOutputDto | null>;
+  findByEmail(email: string): Promise<userOutputDto | null>;
+  createUser(user: createUserInputDto): Promise<User>;
+  findUserByEmailForLogin(email: string): Promise<foundUser | null>;
 }
 
 @Injectable()
 export class UserRepository implements UserRepositoryInterface {
-  constructor(private readonly prisma: PrismaService){}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: string): Promise<UserOutputDto | null> {
+  async findById(id: string): Promise<userOutputDto | null> {
     return this.prisma.user.findFirst({
       where: {
-        id: id
+        id: id,
       },
       select: {
         id: true,
@@ -24,14 +26,14 @@ export class UserRepository implements UserRepositoryInterface {
         email: true,
         createdAt: true,
         updatedAt: true,
-      }
-    })
+      },
+    });
   }
 
-  async findByEmail(email: string): Promise<UserOutputDto | null> {
+  async findByEmail(email: string): Promise<userOutputDto | null> {
     return this.prisma.user.findFirst({
       where: {
-        email: email
+        email: email,
       },
       select: {
         id: true,
@@ -39,17 +41,33 @@ export class UserRepository implements UserRepositoryInterface {
         email: true,
         createdAt: true,
         updatedAt: true,
-      }
-    })
+      },
+    });
   }
 
-  async createUser(user: CreateUserInputDto): Promise<User> {
+  async createUser(user: createUserInputDto): Promise<User> {
     return this.prisma.user.create({
       data: {
         name: user.name,
         email: user.email,
         password: user.password,
-      }
-    })
+      },
+    });
+  }
+
+  async findUserByEmailForLogin(email: string): Promise<foundUser | null> {
+    return this.prisma.user.findFirst({
+      where: {
+        email: email,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 }
