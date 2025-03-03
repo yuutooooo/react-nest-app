@@ -11,6 +11,11 @@ npm run backend
 ```
 ### データベースサーバー
 dockerが立ち上がっている状態で
+サーバー開始コマンド
 ```
 npx supabase start
+```
+サーバー停止コマンド
+```
+npx supabase stop
 ```
