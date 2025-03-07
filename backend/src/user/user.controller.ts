@@ -8,7 +8,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { createUserInputDto, userOutputDto } from 'src/dto/user/createUser';
+import { createUserInputDto, userOutputDto } from '../dto/user/createUser';
 import {
   UserNotFoundException,
   UserEmailAlreadyExistsException,
@@ -16,14 +16,27 @@ import {
   UserInternalServerException,
   UserPasswordNotMatchException,
 } from '../common/exceptions/user.exception';
-import { loginUserInputDto } from 'src/dto/user/loginUser';
+import { DatabaseOperationException } from '../common/exceptions/database.exception';
+import { loginUserInputDto } from '../dto/user/loginUser';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // ユーザー情報取得処理
   @Get()
+  async getUsers(): Promise<userOutputDto[]> {
+    try {
+      return await this.userService.getUsers();
+    } catch (error) {
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to fetch users');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
+    }
+  }
+
+  // ユーザー情報取得処理
+  @Get('id')
   async getUserById(@Query('id') id: string): Promise<userOutputDto> {
     try {
       return await this.userService.getUserById(id);
@@ -32,7 +45,10 @@ export class UserController {
       if (error instanceof UserNotFoundException) {
         throw error;
       }
-      throw new UserInternalServerException('Failed to get user');
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to fetch user');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
   }
 
@@ -47,7 +63,10 @@ export class UserController {
       if (error instanceof UserNotFoundException) {
         throw error;
       }
-      throw new UserInternalServerException('Failed to get user');
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to fetch user');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
   }
 
@@ -64,7 +83,10 @@ export class UserController {
       ) {
         throw error;
       }
-      throw new UserInternalServerException('Failed to create user');
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to create user');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
   }
 
@@ -75,10 +97,16 @@ export class UserController {
     try {
       return await this.userService.login(user);
     } catch (error) {
-      if (error instanceof UserPasswordNotMatchException) {
+      if (
+        error instanceof UserNotFoundException ||
+        error instanceof UserPasswordNotMatchException
+      ) {
         throw error;
       }
-      throw new UserInternalServerException('Failed to login');
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to process login');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
   }
 }
