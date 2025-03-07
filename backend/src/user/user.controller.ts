@@ -14,6 +14,7 @@ import {
   UserEmailAlreadyExistsException,
   UserValidationException,
   UserInternalServerException,
+  UserPasswordNotMatchException,
 } from '../common/exceptions/user.exception';
 import { loginUserInputDto } from 'src/dto/user/loginUser';
 
@@ -21,7 +22,7 @@ import { loginUserInputDto } from 'src/dto/user/loginUser';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // user idをクエリから取得して情報を返す
+  // ユーザー情報取得処理
   @Get()
   async getUserById(@Query('id') id: string): Promise<userOutputDto> {
     try {
@@ -35,6 +36,8 @@ export class UserController {
     }
   }
 
+  // ユーザー情報取得処理
+  // todo 削除予定
   @Get('email')
   async getUserByEmail(@Query('email') email: string): Promise<userOutputDto> {
     try {
@@ -48,6 +51,7 @@ export class UserController {
     }
   }
 
+  // ユーザー登録処理
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   async createUser(@Body() user: createUserInputDto): Promise<userOutputDto> {
@@ -64,11 +68,17 @@ export class UserController {
     }
   }
 
+  // ログイン処置
   @Post('login')
   @UsePipes(new ValidationPipe({ transform: true }))
   async login(@Body() user: loginUserInputDto) {
     try {
       return await this.userService.login(user);
-    } catch (error) {}
+    } catch (error) {
+      if (error instanceof UserPasswordNotMatchException) {
+        throw error;
+      }
+      throw new UserInternalServerException('Failed to login');
+    }
   }
 }

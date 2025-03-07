@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { createUserInputDto, userOutputDto } from 'src/dto/user/createUser';
 import {
@@ -7,13 +7,14 @@ import {
   UserValidationException,
   UserPasswordNotMatchException,
 } from '../common/exceptions/user.exception';
-import { comparePassword, hashPassword } from 'src/common/utils/hashPassword';
+import { UserUtil } from 'src/common/utils/authFunctions';
 import { loginUserInputDto } from 'src/dto/user/loginUser';
 
 @Injectable()
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
+  // ユーザー情報取得処理 idから
   async getUserById(id: string): Promise<userOutputDto> {
     const user = await this.userRepository.findById(id);
     if (!user) {
@@ -22,6 +23,7 @@ export class UserService {
     return user;
   }
 
+  // ユーザー情報取得処理 メールアドレスから
   async getUserByEmail(email: string): Promise<userOutputDto> {
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
@@ -30,6 +32,7 @@ export class UserService {
     return user;
   }
 
+  // ユーザー登録処理
   async createUser(user: createUserInputDto): Promise<userOutputDto> {
     try {
       // メールアドレスの重複チェック
@@ -44,7 +47,7 @@ export class UserService {
       }
 
       // パスワードのハッシュ化
-      user.password = await hashPassword(user.password);
+      user.password = await UserUtil.hashPassword(user.password);
       console.log(user.password);
 
       return await this.userRepository.createUser(user);
@@ -59,6 +62,7 @@ export class UserService {
     }
   }
 
+  // ログイン処理
   async login(user: loginUserInputDto) {
     try {
       const existingUser = await this.userRepository.findUserByEmailForLogin(
@@ -68,16 +72,19 @@ export class UserService {
         throw new UserNotFoundException(user.email);
       }
 
-      const isPasswordOK = await comparePassword(
+      const isPasswordOK = await UserUtil.comparePassword(
         user.password,
         existingUser.password,
       );
       if (!isPasswordOK) {
         throw new UserPasswordNotMatchException();
       }
-      // todo ここでパスワードのハッシュ化をする処理を作成
-      // todo トークンを発行する処理を作成
-      // todo トークンを返す
+      const token = await UserUtil.generateToken(
+        existingUser.id,
+        existingUser.email,
+      );
+      console.log(token);
+      return { token };
     } catch (error) {
       if (
         error instanceof UserNotFoundException ||
