@@ -1,42 +1,81 @@
-import { Injectable } from '@nestjs/common';
-import { UserRepository } from './user.repository';
-import { createUserInputDto, userOutputDto } from 'src/dto/user/createUser';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  UserRepositoryInterface,
+  USER_REPOSITORY,
+} from './user.repository.interface';
+import { createUserInputDto, userOutputDto } from '../dto/user/createUser';
 import {
   UserNotFoundException,
   UserEmailAlreadyExistsException,
   UserValidationException,
   UserPasswordNotMatchException,
+  UserInternalServerException,
 } from '../common/exceptions/user.exception';
-import { UserUtil } from 'src/common/utils/authFunctions';
-import { loginUserInputDto } from 'src/dto/user/loginUser';
+import { DatabaseOperationException } from '../common/exceptions/database.exception';
+import { UserUtil } from '../common/utils/authFunctions';
+import { loginUserInputDto } from '../dto/user/loginUser';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepositoryInterface,
+  ) {}
+
+  async getUsers(): Promise<userOutputDto[]> {
+    try {
+      return await this.userRepository.getUsers();
+    } catch (error) {
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to fetch users');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
+    }
+  }
 
   // ユーザー情報取得処理 idから
   async getUserById(id: string): Promise<userOutputDto> {
-    const user = await this.userRepository.findById(id);
-    if (!user) {
-      throw new UserNotFoundException(id);
+    try {
+      const user = await this.userRepository.getUserById(id);
+      if (!user) {
+        throw new UserNotFoundException(id);
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof UserNotFoundException) {
+        throw error;
+      }
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to fetch user');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
-    return user;
   }
 
   // ユーザー情報取得処理 メールアドレスから
   async getUserByEmail(email: string): Promise<userOutputDto> {
-    const user = await this.userRepository.findByEmail(email);
-    if (!user) {
-      throw new UserNotFoundException(email);
+    try {
+      const user = await this.userRepository.getUserByEmail(email);
+      if (!user) {
+        throw new UserNotFoundException(email);
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof UserNotFoundException) {
+        throw error;
+      }
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to fetch user');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
-    return user;
   }
 
   // ユーザー登録処理
   async createUser(user: createUserInputDto): Promise<userOutputDto> {
     try {
       // メールアドレスの重複チェック
-      const existingUser = await this.userRepository.findByEmail(user.email);
+      const existingUser = await this.userRepository.getUserByEmail(user.email);
       if (existingUser) {
         throw new UserEmailAlreadyExistsException(user.email);
       }
@@ -48,7 +87,6 @@ export class UserService {
 
       // パスワードのハッシュ化
       user.password = await UserUtil.hashPassword(user.password);
-      console.log(user.password);
 
       return await this.userRepository.createUser(user);
     } catch (error) {
@@ -58,7 +96,10 @@ export class UserService {
       ) {
         throw error;
       }
-      throw new Error('Failed to create user');
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to create user');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
   }
 
@@ -79,11 +120,11 @@ export class UserService {
       if (!isPasswordOK) {
         throw new UserPasswordNotMatchException();
       }
+
       const token = await UserUtil.generateToken(
         existingUser.id,
         existingUser.email,
       );
-      console.log(token);
       return { token };
     } catch (error) {
       if (
@@ -92,7 +133,10 @@ export class UserService {
       ) {
         throw error;
       }
-      throw new Error('Failed to login');
+      if (error instanceof DatabaseOperationException) {
+        throw new UserInternalServerException('Failed to process login');
+      }
+      throw new UserInternalServerException('An unexpected error occurred');
     }
   }
 }

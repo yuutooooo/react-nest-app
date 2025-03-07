@@ -30,7 +30,6 @@ model User {
 model Patient {
   id                String              @id @default(uuid())
   name              String
-  email             String              @unique
   password          String
   userPatients      UserPatient[]
   bloodPressureData BloodPressureData[]

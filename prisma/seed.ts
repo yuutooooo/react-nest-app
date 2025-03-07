@@ -26,7 +26,6 @@ async function main() {
   const patient1 = await prisma.patient.create({
     data: {
       name: "鈴木 一郎",
-      email: "suzuki@example.com",
       password: "hashedpassword789",
     },
   });
@@ -34,7 +33,6 @@ async function main() {
   const patient2 = await prisma.patient.create({
     data: {
       name: "山田 次郎",
-      email: "yamada@example.com",
       password: "hashedpassword321",
     },
   });
